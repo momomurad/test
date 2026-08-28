@@ -1,0 +1,86 @@
+Vagrant.configure("2") do |config|
+  config.vm.box = "bento/ubuntu-22.04"
+
+  # 1. JENKINS VM
+  config.vm.define "jenkins" do |jenkins|
+    jenkins.vm.hostname = "jenkins-node"
+    jenkins.vm.network "private_network", ip: "192.168.56.10"
+    jenkins.vm.network "forwarded_port", guest: 8080, host: 8080, auto_correct: true
+
+    jenkins.vm.provider "virtualbox" do |v|
+      v.name = "DevOps-Jenkins"
+      v.cpus = 2
+      v.memory = 2048
+    end
+
+    jenkins.vm.provision "shell", inline: <<-SHELL
+      set -e
+      sudo apt-get update -y
+      sudo apt-get install -y openjdk-17-jre git curl wget net-tools
+      sudo mkdir -p /etc/apt/keyrings
+      curl -fsSL https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key | sudo tee /etc/apt/keyrings/jenkins-keyring.asc > /dev/null
+      echo "deb [signed-by=/etc/apt/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian-stable binary/" | sudo tee /etc/apt/sources.list.d/jenkins.list > /dev/null
+      sudo apt-get update -y
+      sudo apt-get install -y jenkins
+      sudo systemctl enable --now jenkins
+      sudo -u vagrant ssh-keygen -t rsa -b 4096 -N "" -f /home/vagrant/.ssh/id_rsa || true
+    SHELL
+  end
+
+  # 2. ANSIBLE VM
+  config.vm.define "ansible" do |ansible|
+    ansible.vm.hostname = "ansible-node"
+    ansible.vm.network "private_network", ip: "192.168.56.20"
+
+    ansible.vm.provider "virtualbox" do |v|
+      v.name = "DevOps-Ansible"
+      v.cpus = 2
+      v.memory = 2048
+    end
+
+    ansible.vm.provision "shell", inline: <<-SHELL
+      set -e
+      sudo apt-get update -y
+      sudo apt-get install -y software-properties-common git curl sshpass python3-pip
+      sudo apt-add-repository --yes --update ppa:ansible/ansible
+      sudo apt-get install -y ansible
+      sudo -u vagrant ssh-keygen -t rsa -b 4096 -N "" -f /home/vagrant/.ssh/id_rsa || true
+      sudo mkdir -p /etc/ansible
+      cat <<'EOF' | sudo tee /etc/ansible/hosts
+[k8s]
+192.168.56.30 ansible_user=vagrant ansible_ssh_private_key_file=/home/vagrant/.ssh/id_rsa ansible_ssh_common_args='-o StrictHostKeyChecking=no'
+EOF
+    SHELL
+  end
+
+  # 3. KUBERNETES TARGET VM
+  config.vm.define "k8s" do |k8s|
+    k8s.vm.hostname = "k8s-node"
+    k8s.vm.network "private_network", ip: "192.168.56.30"
+    k8s.vm.network "forwarded_port", guest: 31200, host: 31200, auto_correct: true
+
+    k8s.vm.provider "virtualbox" do |v|
+      v.name = "DevOps-K8s"
+      v.cpus = 2
+      v.memory = 4096
+      v.customize ["modifyvm", :id, "--nested-hw-virt", "on"]
+    end
+
+    k8s.vm.provision "shell", inline: <<-SHELL
+      set -e
+      sudo apt-get update -y
+      sudo apt-get install -y ca-certificates curl gnupg lsb-release conntrack socat
+      sudo mkdir -p /etc/apt/keyrings
+      curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+      echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+      sudo apt-get update -y
+      sudo apt-get install -y docker-ce docker-ce-cli containerd.io
+      sudo usermod -aG docker vagrant
+      curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+      sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+      curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+      sudo install minikube-linux-amd64 /usr/local/bin/minikube
+      sudo -u vagrant minikube start --driver=docker --force
+    SHELL
+  end
+end

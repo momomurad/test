@@ -1,0 +1,30 @@
+*** Begin Patch
+*** Update File: Vagrantfile
+@@
+       if [ ! -f /home/vagrant/.ssh/id_rsa ]; then
+         sudo -u vagrant ssh-keygen -t rsa -b 4096 -N "" -f /home/vagrant/.ssh/id_rsa || true
+       fi
++      sudo cp /home/vagrant/.ssh/id_rsa.pub /vagrant/ansible-k8s.pub
++      sudo chmod 644 /vagrant/ansible-k8s.pub
+@@
+-      v.cpus = 2
+-      v.memory = 4096
++      v.cpus = 3
++      v.memory = 6144
++
++    k8s.vm.network "forwarded_port", guest: 3000, host: 3000, auto_correct: true
+@@
+       sudo usermod -aG docker vagrant
++      sudo install -d -m 700 -o vagrant -g vagrant /home/vagrant/.ssh
++      if [ -f /vagrant/ansible-k8s.pub ]; then
++        sudo touch /home/vagrant/.ssh/authorized_keys
++        sudo chown vagrant:vagrant /home/vagrant/.ssh/authorized_keys
++        sudo chmod 600 /home/vagrant/.ssh/authorized_keys
++        sudo grep -qxF "$(cat /vagrant/ansible-k8s.pub)" /home/vagrant/.ssh/authorized_keys || sudo sh -c 'cat /vagrant/ansible-k8s.pub >> /home/vagrant/.ssh/authorized_keys'
++      fi
+@@
+       sudo -u vagrant minikube start --driver=docker --force
+     SHELL
++    k8s.vm.provision "shell", path: "provision/k8s-apps.sh"
+   end
+*** End Patch

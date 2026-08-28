@@ -1,0 +1,107 @@
+vagrant@k8s-node:~$ cat <<'EOF' > ~/rbac-kube-proxy.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+clusterrole.rbac.authorization.k8s.io/system:node-proxier unchanged
+clusterrolebinding.rbac.authorization.k8s.io/system:node-proxier unchanged
+  name: system:node-proxier
+daemonset.apps/kube-proxy restarted
+vagrant@k8s-node:~$
+vagrant@k8s-node:~$ points","nodes","nodes/status","pods","services","namespaces"]
+vagrant@k8s-node:~$ ist","watch"]
+vagrant@k8s-node:~$ rdination.k8s.io"]
+vagrant@k8s-node:~$ ses"]
+vagrant@k8s-node:~$ ist","watch","create","update","patch"]
+vagrant@k8s-node:~$ covery.k8s.io"]
+vagrant@k8s-node:~$ pointslices"]
+vagrant@k8s-node:~$ ist","watch"]
+vagrant@k8s-node:~$
+vagrant@k8s-node:~$ horization.k8s.io/v1
+vagrant@k8s-node:~$ ding
+vagrant@k8s-node:~$
+vagrant@k8s-node:~$ proxier
+vagrant@k8s-node:~$
+vagrant@k8s-node:~$ horization.k8s.io
+vagrant@k8s-node:~$
+vagrant@k8s-node:~$ proxier
+vagrant@k8s-node:~$
+vagrant@k8s-node:~$ ount
+vagrant@k8s-node:~$
+vagrant@k8s-node:~$ system
+vagrant@k8s-node:~$
+vagrant@k8s-node:~$
+vagrant@k8s-node:~$ errolebinding kube-proxy-admin --ignore-not-found
+vagrant@k8s-node:~$ cat <<'EOF' > ~/rbac-kube-proxy.yaml
+> apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: system:node-proxier
+rules:
+  - apiGroups: [""]
+    resources: ["endpoints","nodes","nodes/status","pods","services","namespaces"]
+    verbs: ["get","list","watch"]
+  - apiGroups: ["coordination.k8s.io"]
+    resources: ["leases"]
+    verbs: ["get","list","watch","create","update","patch"]
+  - apiGroups: ["discovery.k8s.io"]
+    resources: ["endpointslices"]
+    verbs: ["get","list","watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: system:node-proxier
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:node-proxier
+subjects:
+  - kind: ServiceAccount
+    name: kube-proxy
+    namespace: kube-system
+EOF
+vagrant@k8s-node:~$ kubectl apply -f ~/rbac-kube-proxy.yaml
+clusterrole.rbac.authorization.k8s.io/system:node-proxier unchanged
+clusterrolebinding.rbac.authorization.k8s.io/system:node-proxier unchanged
+vagrant@k8s-node:~$ kubectl -n kube-system rollout restart daemonset kube-proxy
+daemonset.apps/kube-proxy restarted
+vagrant@k8s-node:~$ kubectl delete clusterrolebinding kube-proxy-admin --ignore-not-found
+vagrant@k8s-node:~$ mkdir -p ~/k8s-backups
+vagrant@k8s-node:~$ kubectl get all --all-namespaces -o yaml > ~/k8s-backups/all-resources.yaml
+vagrant@k8s-node:~$ kubectl get pvc,pv --all-namespaces -o yaml > ~/k8s-backups/storage-resources.yaml
+vagrant@k8s-node:~$ helm -n wordpress get values wordpress > ~/k8s-backups/wordpress-values.yaml
+vagrant@k8s-node:~$ helm -n monitoring get values monitoring > ~/k8s-backups/monitoring-values.yaml
+vagrant@k8s-node:~$ exit
+logout
+PS D:\devops-k8s-project> vagrant snapshot save k8s stable-2026-08-24
+==> k8s: Snapshotting the machine as 'stable-2026-08-24'...
+==> k8s: Snapshot saved! You can restore the snapshot at any time by
+==> k8s: using `vagrant snapshot restore`. You can delete it using
+==> k8s: `vagrant snapshot delete`.
+PS D:\devops-k8s-project> vagrant snapshot save jenkins stable-2026-08-24
+==> jenkins: Snapshotting the machine as 'stable-2026-08-24'...
+==> jenkins: Snapshot saved! You can restore the snapshot at any time by
+==> jenkins: using `vagrant snapshot restore`. You can delete it using
+==> jenkins: `vagrant snapshot delete`.
+PS D:\devops-k8s-project> vagrant snapshot save ansible stable-2026-08-24
+==> ansible: Snapshotting the machine as 'stable-2026-08-24'...
+==> ansible: Snapshot saved! You can restore the snapshot at any time by
+==> ansible: using `vagrant snapshot restore`. You can delete it using
+==> ansible: `vagrant snapshot delete`.
+PS D:\devops-k8s-project> & "C:\Program Files\Oracle\VirtualBox\VBoxManage.exe" list vms
+& : The term 'C:\Program Files\Oracle\VirtualBox\VBoxManage.exe' is not recognized as the name of a cmdlet, function,
+script file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is
+correct and try again.
+At line:1 char:3
++ & "C:\Program Files\Oracle\VirtualBox\VBoxManage.exe" list vms
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (C:\Program File...\VBoxManage.exe:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+
+PS D:\devops-k8s-project> @'
+>> Set-Location "D:\devops-k8s-project"
+>> Write-Host "Starting DevOps Lab VMs..." -ForegroundColor Green
+>> vagrant up --no-provision
+>>
+>> Write-Host "Verifying Minikube & Kubernetes status..." -ForegroundColor Yellow
+>> vagrant ssh k8s -c "minikube status; kubectl get nodes"
+>> '@ | Out-File -FilePath "D:\devops-k8s-project\start-vms.ps1" -Encoding utf8
+PS D:\devops-k8s-project>

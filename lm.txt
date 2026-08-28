@@ -1,0 +1,22 @@
+name: My Config
+version: 0.0.1
+schema: v1
+
+models:
+  - name: Qwen 2.5 Coder 14B
+    provider: lmstudio
+    model: qwen/qwen2.5-coder-14b
+    apiBase: http://localhost:1234/v1
+
+embeddings:
+  provider: lmstudio
+  model: text-embedding-nomic-embed-text-v1.5
+  apiBase: http://localhost:1234/v1
+
+context:
+  - provider: codebase
+  - provider: code
+  - provider: file
+  - provider: folder
+  - provider: terminal
+  - provider: problems

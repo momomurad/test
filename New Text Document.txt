@@ -1,0 +1,34 @@
+# 1. Remove the existing broken repo file
+sudo rm -f /etc/apt/sources.list.d/jenkins.list
+
+# 2. Download and properly dearmor the Jenkins GPG key
+sudo mkdir -p /etc/apt/keyrings
+curl -fsSL https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key | sudo gpg --dearmor -o /etc/apt/keyrings/jenkins-keyring.gpg --overwrite
+
+# 3. Re-add the repository using the binary GPG key
+echo "deb [signed-by=/etc/apt/keyrings/jenkins-keyring.gpg] https://pkg.jenkins.io/debian-stable binary/" | sudo tee /etc/apt/sources.list.d/jenkins.list > /dev/null
+
+# 4. Update packages and install Jenkins
+sudo apt-get update
+sudo apt-get install -y jenkins
+sudo systemctl enable --now Jenkins
+
+sudo cat /var/lib/jenkins/secrets/initialAdminPassword
+
+# 1. Clean up the broken repository file
+sudo rm -f /etc/apt/sources.list.d/jenkins.list
+
+# 2. Download and dearmor the correct GPG key
+sudo mkdir -p /etc/apt/keyrings
+curl -fsSL https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key | sudo gpg --dearmor -o /etc/apt/keyrings/jenkins-keyring.gpg --overwrite
+
+# 3. Add the official Jenkins repository
+echo "deb [signed-by=/etc/apt/keyrings/jenkins-keyring.gpg] https://pkg.jenkins.io/debian-stable binary/" | sudo tee /etc/apt/sources.list.d/jenkins.list > /dev/null
+
+# 4. Update apt and install Java + Jenkins
+sudo apt-get update
+sudo apt-get install -y openjdk-17-jre jenkins
+
+# 5. Enable and start Jenkins service
+sudo systemctl enable --now jenkins
+
