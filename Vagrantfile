@@ -92,6 +92,9 @@ EOF
     k8s.vm.network "forwarded_port", guest: 8081, host: 8081, auto_correct: true
     k8s.vm.network "forwarded_port", guest: 8082, host: 8082, auto_correct: true
     k8s.vm.network "forwarded_port", guest: 8083, host: 8083, auto_correct: true
+    k8s.vm.network "forwarded_port", guest: 3000, host: 3000, auto_correct: true
+    k8s.vm.network "forwarded_port", guest: 31200, host: 31200, auto_correct: true
+    k8s.vm.network "forwarded_port", guest: 9090, host: 9090, auto_correct: true
 
     k8s.vm.provider "virtualbox" do |v|
       v.name = "DevOps-K8s"
@@ -123,6 +126,30 @@ EOF
 
       curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
       sudo install minikube-linux-amd64 /usr/local/bin/minikube
+
+      echo "[K8S] Installing Minikube boot service..."
+      sudo tee /etc/systemd/system/minikube-start.service >/dev/null <<'UNIT'
+[Unit]
+Description=Start Minikube after the k8s VM boots
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=vagrant
+Group=vagrant
+Environment=HOME=/home/vagrant
+Environment=MINIKUBE_HOME=/home/vagrant
+ExecStart=/usr/local/bin/minikube start --driver=docker --force
+RemainAfterExit=yes
+TimeoutStartSec=600
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+      sudo systemctl daemon-reload
+      sudo systemctl enable minikube-start.service
 
       echo "[K8S] Starting Minikube cluster..."
       sudo -u vagrant minikube start --driver=docker --force
