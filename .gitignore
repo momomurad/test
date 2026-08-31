@@ -1,0 +1,5 @@
+.vagrant/
+wordpress-migration/
+wordpress-dev/
+*.sql
+*.sql.gz
