@@ -22,7 +22,9 @@ sudo -u vagrant helm upgrade --install wordpress bitnami/wordpress \
 sudo -u vagrant helm upgrade --install monitoring prometheus-community/kube-prometheus-stack \
   --namespace monitoring --create-namespace \
   --set alertmanager.enabled=false \
-  --set prometheus.prometheusSpec.retention=3d
+  --set prometheus.prometheusSpec.retention=3d \
+  --set grafana.resources.requests.memory=256Mi \
+  --set grafana.resources.limits.memory=768Mi
 
 sudo tee /etc/systemd/system/wordpress-port-forward.service >/dev/null <<'UNIT'
 [Unit]
