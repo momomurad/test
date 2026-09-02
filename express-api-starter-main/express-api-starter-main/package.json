@@ -1,0 +1,33 @@
+{
+  "name": "express-api-starter",
+  "type": "module",
+  "version": "2.0.0",
+  "description": "A basic starter for an express.js API",
+  "author": "CJ R. <cj@null.computer> (https://w3cj.now.sh)",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/w3cj/express-api-starter.git"
+  },
+  "keywords": [],
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node --env-file=.env src/index.js",
+    "dev": "node --watch --env-file=.env src/index.js",
+    "lint": "eslint --fix src",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "helmet": "^8.1.0",
+    "morgan": "^1.10.1",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@antfu/eslint-config": "^6.2.0",
+    "eslint-plugin-format": "^1.0.2",
+    "supertest": "^7.1.4",
+    "vitest": "^4.0.6"
+  }
+}

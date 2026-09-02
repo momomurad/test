@@ -1,0 +1,59 @@
+pipeline {
+    agent any
+
+    environment {
+        DOCKER_IMAGE = "YOUR_DOCKERHUB_USERNAME/nodejs-k8s-demo"
+        IMAGE_TAG    = "${BUILD_NUMBER}"
+        DOCKER_CREDS = "dockerhub-credentials" // Jenkins Credentials ID for Docker Registry
+        KUBE_CONFIG  = "kubeconfig-credentials" // Jenkins Credentials ID for Kubernetes Config
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Install & Test') {
+            steps {
+                sh 'npm ci'
+                sh 'npm test'
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                sh "docker build -t ${DOCKER_IMAGE}:${IMAGE_TAG} -t ${DOCKER_IMAGE}:latest ."
+            }
+        }
+
+        stage('Push Image') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: "${DOCKER_CREDS}", usernameVariable: 'USER', passwordVariable: 'PASS')]) {
+                    sh "echo ${PASS} | docker login -u ${USER} --password-stdin"
+                    sh "docker push ${DOCKER_IMAGE}:${IMAGE_TAG}"
+                    sh "docker push ${DOCKER_IMAGE}:latest"
+                }
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                withKubeConfig([credentialsId: "${KUBE_CONFIG}"]) {
+                    // Replace placeholer tag with build number
+                    sh "sed -i 's|YOUR_DOCKERHUB_USERNAME/nodejs-k8s-demo:IMAGE_TAG|${DOCKER_IMAGE}:${IMAGE_TAG}|g' k8s/deployment.yaml"
+                    sh "kubectl apply -f k8s/deployment.yaml"
+                    sh "kubectl apply -f k8s/service.yaml"
+                    sh "kubectl rollout status deployment/nodejs-app"
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            sh "docker logout"
+        }
+    }
+}

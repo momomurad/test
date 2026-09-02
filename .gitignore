@@ -1,4 +1,17 @@
 .vagrant/
+**/node_modules/
+
+# Local environment files and secrets
+.env
+.env.*
+!.env.example
+
+# Logs and test output
+*.log
+logs/
+**/logs/
+coverage/
+**/coverage/
 wordpress-migration/
 wordpress-dev/
 *.sql

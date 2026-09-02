@@ -1,0 +1,13 @@
+{
+  "name": "nodejs-k8s-demo",
+  "version": "1.0.0",
+  "description": "Sample Express app for Kubernetes and Jenkins CI/CD",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "test": "node -e \"console.log('All tests passed successfully')\""
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}
