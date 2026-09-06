@@ -1,0 +1,44 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nodejs-app
+    ports:
+      - "3001:3001"
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3001/health', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
+  # Development service with hot-reload
+  app-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nodejs-app-dev
+    ports:
+      - "3002:3001"
+    environment:
+      NODE_ENV: development
+      PORT: 3001
+    volumes:
+      - ./app.js:/app/app.js
+      - ./package.json:/app/package.json
+    develop:
+      watch:
+        - action: sync
+          path: .
+          target: /app
+          ignore:
+            - node_modules
+            - .git
+    command: node app.js
+    profiles:
+      - dev

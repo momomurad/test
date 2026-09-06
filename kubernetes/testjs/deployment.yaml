@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: testjs
+  namespace: default
+  labels:
+    app: testjs
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: testjs
+  template:
+    metadata:
+      labels:
+        app: testjs
+    spec:
+      containers:
+        - name: nodejs-app
+          image: momo1029/nodejs-app:latest
+          imagePullPolicy: IfNotPresent

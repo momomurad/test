@@ -1,0 +1,1 @@
+{"name":"lab-task-manager","private":true,"version":"1.0.0","type":"module","workspaces":["frontend","backend"],"scripts":{"build":"npm run build -w frontend","test":"npm test -w backend"}}

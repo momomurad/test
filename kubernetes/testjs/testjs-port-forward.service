@@ -1,0 +1,14 @@
+[Unit]
+Description=Forward testjs to Windows on port 8082
+After=network-online.target minikube-start.service
+Wants=network-online.target
+
+[Service]
+User=vagrant
+Environment=HOME=/home/vagrant
+ExecStart=/usr/local/bin/kubectl --kubeconfig=/home/vagrant/.kube/config port-forward -n default service/testjs 8082:5000 --address=0.0.0.0
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
