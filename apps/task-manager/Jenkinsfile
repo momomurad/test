@@ -1,0 +1,32 @@
+pipeline {
+    agent any
+
+    tools {
+        nodejs 'node24'
+    }
+
+    stages {
+        stage('Check tools') {
+            steps {
+                sh 'node --version'
+                sh 'npm --version'
+            }
+        }
+
+        stage('Install dependencies') {
+            steps {
+                dir('apps/task-manager') {
+                    sh 'npm ci'
+                }
+            }
+        }
+
+        stage('Build frontend') {
+            steps {
+                dir('apps/task-manager') {
+                    sh 'npm run build'
+                }
+            }
+        }
+    }
+}
