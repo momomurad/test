@@ -5,11 +5,16 @@ pipeline {
         nodejs 'node24'
     }
 
+    options {
+        disableConcurrentBuilds()
+    }
+
     stages {
         stage('Check tools') {
             steps {
                 sh 'node --version'
                 sh 'npm --version'
+                sh 'docker info --format "{{.ServerVersion}}"'
             }
         }
 
@@ -17,6 +22,61 @@ pipeline {
             steps {
                 dir('apps/task-manager') {
                     sh 'npm ci'
+                }
+            }
+        }
+
+        stage('Backend tests') {
+            options {
+                timeout(time: 5, unit: 'MINUTES')
+            }
+            steps {
+                dir('apps/task-manager') {
+                    sh '''
+                        set +x
+                        set -eu
+
+                        db_name="taskroom-ci-$(node -p "require('node:crypto').randomBytes(8).toString('hex')")"
+                        cleanup() {
+                            docker rm -f -v "$db_name" >/dev/null 2>&1 || true
+                        }
+                        trap cleanup EXIT
+                        trap 'exit 130' INT
+                        trap 'exit 143' TERM
+
+                        POSTGRES_PASSWORD=$(node -p "require('node:crypto').randomBytes(24).toString('hex')")
+                        export POSTGRES_PASSWORD
+
+                        docker run -d --rm --name "$db_name" \
+                            --tmpfs /var/lib/postgresql/data:rw \
+                            --publish 127.0.0.1::5432 \
+                            --env POSTGRES_USER=taskmanager \
+                            --env POSTGRES_DB=taskmanager_test \
+                            --env POSTGRES_PASSWORD \
+                            postgres:17-alpine >/dev/null
+
+                        ready=false
+                        for attempt in $(seq 1 30); do
+                            if docker exec "$db_name" pg_isready \
+                                -h 127.0.0.1 -U taskmanager -d taskmanager_test \
+                                >/dev/null 2>&1; then
+                                ready=true
+                                break
+                            fi
+                            sleep 2
+                        done
+
+                        if [ "$ready" != true ]; then
+                            echo 'Test database did not become ready within 60 seconds.'
+                            docker logs --tail 50 "$db_name"
+                            exit 1
+                        fi
+
+                        db_endpoint=$(docker port "$db_name" 5432/tcp)
+                        export DATABASE_URL="postgresql://taskmanager:${POSTGRES_PASSWORD}@127.0.0.1:${db_endpoint##*:}/taskmanager_test"
+
+                        npm test
+                    '''
                 }
             }
         }
