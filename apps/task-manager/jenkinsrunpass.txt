@@ -1,0 +1,126 @@
+Started by user momo test
+
+Obtained apps/task-manager/Jenkinsfile from git https://github.com/momomurad/test.git
+[Pipeline] Start of Pipeline
+[Pipeline] node
+Running on Jenkins
+ in /var/lib/jenkins/workspace/taskroom-ci
+[Pipeline] {
+[Pipeline] stage
+[Pipeline] { (Declarative: Checkout SCM)
+[Pipeline] checkout
+Selected Git installation does not exist. Using Default
+The recommended git tool is: NONE
+No credentials specified
+ > /usr/bin/git rev-parse --resolve-git-dir /var/lib/jenkins/workspace/taskroom-ci/.git # timeout=10
+Fetching changes from the remote Git repository
+ > /usr/bin/git config remote.origin.url https://github.com/momomurad/test.git # timeout=10
+Fetching upstream changes from https://github.com/momomurad/test.git
+ > /usr/bin/git --version # timeout=10
+ > git --version # 'git version 2.34.1'
+ > /usr/bin/git fetch --tags --force --progress -- https://github.com/momomurad/test.git +refs/heads/*:refs/remotes/origin/* # timeout=10
+ > /usr/bin/git rev-parse refs/remotes/origin/main^{commit} # timeout=10
+Checking out Revision baa3cec98e8207766c646ec10ee4f2798113ea77 (refs/remotes/origin/main)
+ > /usr/bin/git config core.sparsecheckout # timeout=10
+ > /usr/bin/git checkout -f baa3cec98e8207766c646ec10ee4f2798113ea77 # timeout=10
+Commit message: "add jfile"
+ > /usr/bin/git rev-list --no-walk acab4b42a5b5bf742f07efcba086354eff64e836 # timeout=10
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] withEnv
+[Pipeline] {
+[Pipeline] stage
+[Pipeline] { (Declarative: Tool Install)
+[Pipeline] tool
+Unpacking https://nodejs.org/dist/v24.20.0/node-v24.20.0-linux-x64.tar.gz to /var/lib/jenkins/tools/jenkins.plugins.nodejs.tools.NodeJSInstallation/node24 on Jenkins
+[Pipeline] envVarsForTool
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] withEnv
+[Pipeline] {
+[Pipeline] stage
+[Pipeline] { (Check tools)
+[Pipeline] tool
+[Pipeline] envVarsForTool
+[Pipeline] withEnv
+[Pipeline] {
+[Pipeline] sh
++ node --version
+v24.20.0
+[Pipeline] sh
++ npm --version
+11.19.0
+[Pipeline] }
+[Pipeline] // withEnv
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Install dependencies)
+[Pipeline] tool
+[Pipeline] envVarsForTool
+[Pipeline] withEnv
+[Pipeline] {
+[Pipeline] dir
+Running in /var/lib/jenkins/workspace/taskroom-ci/apps/task-manager
+[Pipeline] {
+[Pipeline] sh
++ npm ci
+
+added 102 packages, and audited 105 packages in 3s
+
+32 packages are looking for funding
+  run `npm fund` for details
+
+found 0 vulnerabilities
+npm warn install-scripts 1 package has install scripts not yet covered by allowScripts:
+npm warn install-scripts   esbuild@0.28.2 (postinstall: node install.js)
+npm warn install-scripts
+npm warn install-scripts Run `npm install-scripts ls` to review, or `npm install-scripts approve <pkg>` to allow.
+[Pipeline] }
+[Pipeline] // dir
+[Pipeline] }
+[Pipeline] // withEnv
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Build frontend)
+[Pipeline] tool
+[Pipeline] envVarsForTool
+[Pipeline] withEnv
+[Pipeline] {
+[Pipeline] dir
+Running in /var/lib/jenkins/workspace/taskroom-ci/apps/task-manager
+[Pipeline] {
+[Pipeline] sh
++ npm run build
+
+> lab-task-manager@1.0.0 build
+> npm run build -w frontend
+
+
+> task-manager-ui@1.0.0 build
+> vite build
+
+[36mvite v7.3.6 [32mbuilding client environment for production...[36m[39m
+transforming...
+[32m✓[39m 23 modules transformed.
+rendering chunks...
+computing gzip size...
+[2mdist/[22m[32mindex.html                 [39m[1m[2m  0.47 kB[22m[1m[22m[2m │ gzip:  0.32 kB[22m
+[2mdist/[22m[2massets/[22m[35mindex-Cr4qp0WG.css  [39m[1m[2m  5.37 kB[22m[1m[22m[2m │ gzip:  1.81 kB[22m
+[2mdist/[22m[2massets/[22m[36mindex-8OzsCdyR.js   [39m[1m[2m197.95 kB[22m[1m[22m[2m │ gzip: 62.36 kB[22m
+[32m✓ built in 1.25s[39m
+[Pipeline] }
+[Pipeline] // dir
+[Pipeline] }
+[Pipeline] // withEnv
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] }
+[Pipeline] // withEnv
+[Pipeline] }
+[Pipeline] // withEnv
+[Pipeline] }
+[Pipeline] // node
+[Pipeline] End of Pipeline
+Finished: SUCCESS
