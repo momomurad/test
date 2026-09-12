@@ -9,6 +9,11 @@ pipeline {
         disableConcurrentBuilds()
     }
 
+    environment {
+        API_IMAGE = 'momo1029/task-manager-api'
+        UI_IMAGE = 'momo1029/task-manager-ui'
+    }
+
     stages {
         stage('Check tools') {
             steps {
@@ -85,6 +90,48 @@ pipeline {
             steps {
                 dir('apps/task-manager') {
                     sh 'npm run build'
+                }
+            }
+        }
+
+        stage('Build Docker images') {
+            steps {
+                script {
+                    env.IMAGE_TAG = "${env.BUILD_NUMBER}-${env.GIT_COMMIT.take(7)}"
+                }
+                dir('apps/task-manager') {
+                    sh '''
+                        set -eu
+                        docker build -f backend/Dockerfile \
+                            -t "${API_IMAGE}:${IMAGE_TAG}" \
+                            -t "${API_IMAGE}:latest" \
+                            .
+                        docker build -f frontend/Dockerfile \
+                            -t "${UI_IMAGE}:${IMAGE_TAG}" \
+                            -t "${UI_IMAGE}:latest" \
+                            .
+                    '''
+                }
+            }
+        }
+
+        stage('Push Docker images') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'docker-creds',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    sh '''
+                        set +x
+                        set -eu
+                        printf '%s' "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                        docker push "${API_IMAGE}:${IMAGE_TAG}"
+                        docker push "${API_IMAGE}:latest"
+                        docker push "${UI_IMAGE}:${IMAGE_TAG}"
+                        docker push "${UI_IMAGE}:latest"
+                        docker logout
+                    '''
                 }
             }
         }
