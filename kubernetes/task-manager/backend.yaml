@@ -29,6 +29,13 @@ spec:
         app: task-manager
         component: backend
     spec:
+      initContainers:
+        - name: wait-for-database
+          image: postgres:17-alpine
+          command:
+            - sh
+            - -c
+            - until pg_isready -h database -U taskmanager -d taskmanager; do sleep 2; done
       containers:
         - name: backend
           image: momo1029/task-manager-api:latest

@@ -98,8 +98,8 @@ EOF
 
     k8s.vm.provider "virtualbox" do |v|
       v.name = "DevOps-K8s"
-      v.cpus = 3
-      v.memory = 6144
+      v.cpus = 4
+      v.memory = 8192
       v.customize ["modifyvm", :id, "--nested-hw-virt", "on"]
     end
 
