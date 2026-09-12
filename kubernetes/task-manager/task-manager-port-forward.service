@@ -1,0 +1,14 @@
+[Unit]
+Description=Taskroom frontend Kubernetes port forward
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=vagrant
+Environment=KUBECONFIG=/home/vagrant/.kube/config
+ExecStart=/usr/local/bin/kubectl -n task-manager port-forward --address 0.0.0.0 svc/frontend 8083:80
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
