@@ -187,18 +187,41 @@ REMOTE_DEPLOY
                 '''
             }
         }
-		stage('Post-deploy smoke test') {
-			steps {
-				sh '''
-					set -eu
+        stage('Post-deploy smoke test') {
+            steps {
+                sh '''
+                    set -eu
 
-					ssh -i /var/lib/jenkins/.ssh/k8s_deploy_key \
-					-o StrictHostKeyChecking=accept-new \
-					-o IdentitiesOnly=yes \
-					vagrant@192.168.56.30 \
-					'curl -fsSI http://localhost:8083 && curl -fsS http://localhost:8083/api/ready'
-				'''
-			}
-		}
+                    ssh -i /var/lib/jenkins/.ssh/k8s_deploy_key \
+                        -o StrictHostKeyChecking=accept-new \
+                        -o IdentitiesOnly=yes \
+                        vagrant@192.168.56.30 \
+                        bash -s <<'REMOTE_SMOKE'
+                    set -eu
+
+                    sudo systemctl restart task-manager-port-forward.service
+
+                    ready=false
+                    for attempt in $(seq 1 30); do
+                        if curl -fsS http://localhost:8083/api/ready >/dev/null; then
+                            ready=true
+                            break
+                        fi
+                        sleep 2
+                    done
+
+                    if [ "${ready}" != true ]; then
+                        echo 'Taskroom frontend/backend did not become ready on localhost:8083.'
+                        sudo systemctl status task-manager-port-forward.service --no-pager || true
+                        sudo journalctl -u task-manager-port-forward.service -n 50 --no-pager || true
+                        exit 1
+                    fi
+
+                    curl -fsSI http://localhost:8083
+                    curl -fsS http://localhost:8083/api/ready
+REMOTE_SMOKE
+                '''
+            }
+        }
     }
 }
