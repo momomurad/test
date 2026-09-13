@@ -140,19 +140,38 @@ pipeline {
                 sh '''
                     set -eu
 
+                    remote_host="vagrant@192.168.56.30"
+                    ssh_key="/var/lib/jenkins/.ssh/k8s_deploy_key"
+                    ssh_opts="-i ${ssh_key} -o StrictHostKeyChecking=accept-new -o IdentitiesOnly=yes"
+                    remote_dir="/tmp/task-manager-k8s"
+
+                    if [ ! -r "${ssh_key}" ]; then
+                        echo "Missing SSH key: ${ssh_key}"
+                        echo 'Create the Jenkins-to-k8s SSH key before deploying.'
+                        exit 1
+                    fi
+
+                    ssh ${ssh_opts} "${remote_host}" "mkdir -p ${remote_dir}"
+                    scp ${ssh_opts} kubernetes/task-manager/*.yaml "${remote_host}:${remote_dir}/"
+
+                    ssh ${ssh_opts} "${remote_host}" \
+                        API_IMAGE="${API_IMAGE}" UI_IMAGE="${UI_IMAGE}" IMAGE_TAG="${IMAGE_TAG}" \
+                        bash -s <<'REMOTE_DEPLOY'
+                    set -eu
+
                     kubectl version --client=true
-                    kubectl apply -f kubernetes/task-manager/namespace.yaml
+                    kubectl apply -f /tmp/task-manager-k8s/namespace.yaml
 
                     if ! kubectl -n task-manager get secret task-manager-db >/dev/null 2>&1; then
                         echo 'Missing Kubernetes secret: task-manager-db'
-                        echo 'Create it on the Minikube cluster before deploying:'
+                        echo 'Create it on the k8s VM before deploying:'
                         echo 'kubectl -n task-manager create secret generic task-manager-db --from-literal=password=YOUR_PASSWORD'
                         exit 1
                     fi
 
-                    kubectl apply -f kubernetes/task-manager/postgres.yaml
-                    kubectl apply -f kubernetes/task-manager/backend.yaml
-                    kubectl apply -f kubernetes/task-manager/frontend.yaml
+                    kubectl apply -f /tmp/task-manager-k8s/postgres.yaml
+                    kubectl apply -f /tmp/task-manager-k8s/backend.yaml
+                    kubectl apply -f /tmp/task-manager-k8s/frontend.yaml
 
                     kubectl -n task-manager set image deployment/backend backend="${API_IMAGE}:${IMAGE_TAG}"
                     kubectl -n task-manager set image deployment/frontend frontend="${UI_IMAGE}:${IMAGE_TAG}"
@@ -160,6 +179,7 @@ pipeline {
                     kubectl -n task-manager rollout status deployment/database --timeout=120s
                     kubectl -n task-manager rollout status deployment/backend --timeout=120s
                     kubectl -n task-manager rollout status deployment/frontend --timeout=120s
+REMOTE_DEPLOY
                 '''
             }
         }
