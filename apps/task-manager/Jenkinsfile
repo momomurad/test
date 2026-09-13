@@ -9,6 +9,10 @@ pipeline {
         disableConcurrentBuilds()
     }
 
+    triggers {
+        pollSCM('H/2 * * * *')
+    }
+
     environment {
         API_IMAGE = 'momo1029/task-manager-api'
         UI_IMAGE = 'momo1029/task-manager-ui'
