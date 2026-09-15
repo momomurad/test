@@ -90,3 +90,20 @@ The backend Service must have these metadata labels:
 app: task-manager
 component: backend
 ```
+
+## Taskroom Grafana dashboard
+
+The Taskroom dashboard is stored as Kubernetes configuration at
+`kubernetes/task-manager/grafana-dashboard.yaml`. It creates the Grafana sidecar
+ConfigMap `taskroom-grafana-dashboard` in the `monitoring` namespace.
+
+Jenkins applies this dashboard during Taskroom deployment. To apply it manually:
+
+```powershell
+vagrant ssh k8s -c "kubectl apply -f /vagrant/kubernetes/task-manager/grafana-dashboard.yaml"
+vagrant ssh k8s -c "kubectl -n monitoring get configmap taskroom-grafana-dashboard"
+```
+
+Open Grafana at http://localhost:3000, then go to **Dashboards** and open
+**Taskroom Overview**. The dashboard shows backend status, request rate by HTTP
+status, p95 request duration, and backend memory RSS.

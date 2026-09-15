@@ -23,6 +23,7 @@ kubectl apply -f kubernetes/task-manager/postgres.yaml
 kubectl apply -f kubernetes/task-manager/backend.yaml
 kubectl apply -f kubernetes/task-manager/frontend.yaml
 kubectl apply -f kubernetes/task-manager/monitoring.yaml
+kubectl apply -f kubernetes/task-manager/grafana-dashboard.yaml
 kubectl -n task-manager rollout status deployment/database --timeout=120s
 kubectl -n task-manager rollout status deployment/backend --timeout=120s
 kubectl -n task-manager rollout status deployment/frontend --timeout=120s
@@ -51,7 +52,9 @@ The backend exposes Prometheus-format metrics at `/metrics`. When the
 
 ```bash
 kubectl apply -f kubernetes/task-manager/monitoring.yaml
+kubectl apply -f kubernetes/task-manager/grafana-dashboard.yaml
 kubectl get servicemonitor -n monitoring taskroom-backend
+kubectl get configmap -n monitoring taskroom-grafana-dashboard
 ```
 
 Quick checks from the K8s VM:
