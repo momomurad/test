@@ -220,7 +220,36 @@ REMOTE_DEPLOY
 
                     curl -fsSI http://localhost:8083
                     curl -fsS http://localhost:8083/api/ready
-                    curl -fsS http://$(kubectl -n task-manager get svc backend -o jsonpath='{.spec.clusterIP}'):3001/metrics | grep 'taskroom_up 1'
+
+                    backend_pf_log=/tmp/taskroom-backend-port-forward.log
+                    backend_pf_pid=""
+                    cleanup_smoke() {
+                        if [ -n "${backend_pf_pid}" ]; then
+                            kill "${backend_pf_pid}" >/dev/null 2>&1 || true
+                        fi
+                    }
+                    trap cleanup_smoke EXIT
+
+                    kubectl -n task-manager port-forward --address 127.0.0.1 svc/backend 18083:3001 >"${backend_pf_log}" 2>&1 &
+                    backend_pf_pid=$!
+
+                    metrics_ready=false
+                    for attempt in $(seq 1 30); do
+                        if curl -fsS http://127.0.0.1:18083/metrics | grep 'taskroom_up 1'; then
+                            metrics_ready=true
+                            break
+                        fi
+                        sleep 2
+                    done
+
+                    if [ "${metrics_ready}" != true ]; then
+                        echo 'Taskroom backend metrics did not become ready through port-forward.'
+                        cat "${backend_pf_log}" || true
+                        kubectl -n task-manager get pods,svc,endpoints
+                        exit 1
+                    fi
+
+                    kubectl -n monitoring get servicemonitor taskroom-backend
 REMOTE_SMOKE
                 '''
             }

@@ -3,6 +3,9 @@ kind: Service
 metadata:
   name: backend
   namespace: task-manager
+  labels:
+    app: task-manager
+    component: backend
 spec:
   selector:
     app: task-manager
@@ -17,6 +20,9 @@ kind: Deployment
 metadata:
   name: backend
   namespace: task-manager
+  labels:
+    app: task-manager
+    component: backend
 spec:
   replicas: 1
   selector:

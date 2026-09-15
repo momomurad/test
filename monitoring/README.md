@@ -77,3 +77,16 @@ rate(taskroom_http_requests_total[5m])
 sum by (status) (rate(taskroom_http_requests_total[5m]))
 taskroom_process_memory_bytes{type="rss"}
 ```
+If `taskroom_up` returns no data, first confirm the ServiceMonitor can select the backend Service:
+
+```powershell
+vagrant ssh k8s -c "kubectl -n task-manager get svc backend --show-labels"
+vagrant ssh k8s -c "kubectl -n monitoring describe servicemonitor taskroom-backend"
+```
+
+The backend Service must have these metadata labels:
+
+```yaml
+app: task-manager
+component: backend
+```
