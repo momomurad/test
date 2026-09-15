@@ -53,3 +53,27 @@ vagrant ssh k8s -c "sudo systemctl status grafana-port-forward prometheus-port-f
 ```
 
 Do not store Grafana passwords or exported Kubernetes secrets in Git.
+
+## Taskroom application metrics
+
+Taskroom backend metrics are exposed at `/metrics` on the backend service port
+`3001`. The ServiceMonitor lives at
+`kubernetes/task-manager/monitoring.yaml` and is selected by the
+`kube-prometheus-stack` release label `release: monitoring`.
+
+Apply and verify:
+
+```powershell
+vagrant ssh k8s -c "kubectl apply -f /vagrant/kubernetes/task-manager/monitoring.yaml"
+vagrant ssh k8s -c "kubectl -n monitoring get servicemonitor taskroom-backend"
+vagrant ssh k8s -c 'curl -fsS http://$(kubectl -n task-manager get svc backend -o jsonpath="{.spec.clusterIP}"):3001/metrics | grep "taskroom_up 1"'
+```
+
+Starter PromQL queries:
+
+```promql
+taskroom_up
+rate(taskroom_http_requests_total[5m])
+sum by (status) (rate(taskroom_http_requests_total[5m]))
+taskroom_process_memory_bytes{type="rss"}
+```

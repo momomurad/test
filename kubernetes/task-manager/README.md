@@ -22,6 +22,7 @@ kubectl apply -f kubernetes/task-manager/namespace.yaml
 kubectl apply -f kubernetes/task-manager/postgres.yaml
 kubectl apply -f kubernetes/task-manager/backend.yaml
 kubectl apply -f kubernetes/task-manager/frontend.yaml
+kubectl apply -f kubernetes/task-manager/monitoring.yaml
 kubectl -n task-manager rollout status deployment/database --timeout=120s
 kubectl -n task-manager rollout status deployment/backend --timeout=120s
 kubectl -n task-manager rollout status deployment/frontend --timeout=120s
@@ -40,4 +41,31 @@ Open the app from Windows:
 
 ```text
 http://localhost:8083
+```
+
+## Monitoring
+
+The backend exposes Prometheus-format metrics at `/metrics`. When the
+`kube-prometheus-stack` release named `monitoring` is installed, apply
+`monitoring.yaml` so Prometheus discovers the backend service:
+
+```bash
+kubectl apply -f kubernetes/task-manager/monitoring.yaml
+kubectl get servicemonitor -n monitoring taskroom-backend
+```
+
+Quick checks from the K8s VM:
+
+```bash
+curl -fsS http://$(kubectl -n task-manager get svc backend -o jsonpath='{.spec.clusterIP}'):3001/metrics | grep 'taskroom_up 1'
+kubectl -n monitoring get servicemonitor taskroom-backend
+```
+
+In Prometheus or Grafana, useful starter queries are:
+
+```promql
+taskroom_up
+taskroom_http_requests_total
+rate(taskroom_http_requests_total[5m])
+taskroom_http_request_duration_seconds_count
 ```

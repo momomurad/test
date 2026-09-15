@@ -33,7 +33,9 @@ curl.exe http://localhost:8084/api/ready
 The integration test creates its own record, verifies CRUD and validation
 against PostgreSQL, and deletes only that record. The UI is compiled during the
 frontend image build. `/api/health` checks the API process; `/api/ready` checks
-the database connection.
+the database connection. The backend also exposes Prometheus-format metrics at
+`/metrics`, including process health, memory, request totals, and request
+duration buckets.
 
 ## Persistence and stopping
 
@@ -61,5 +63,6 @@ After this local stack is verified, build versioned frontend/API images, push
 them to Docker Hub, and add Kubernetes resources in a separate namespace. Use
 a PostgreSQL PVC and runtime Secret, resource limits, readiness checks, and
 Windows forwarding. The Nginx Docker DNS resolver must be adjusted for Kubernetes.
-Then automate the verified workflow in Jenkins. Existing `testjs`, demo, and
+Then monitor the backend through Prometheus/Grafana with the ServiceMonitor in
+`kubernetes/task-manager/monitoring.yaml`. Existing `testjs`, demo, and
 WordPress deployments remain separate.

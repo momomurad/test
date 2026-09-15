@@ -176,6 +176,7 @@ pipeline {
                     kubectl apply -f /tmp/task-manager-k8s/postgres.yaml
                     kubectl apply -f /tmp/task-manager-k8s/backend.yaml
                     kubectl apply -f /tmp/task-manager-k8s/frontend.yaml
+                    kubectl apply -f /tmp/task-manager-k8s/monitoring.yaml
 
                     kubectl -n task-manager set image deployment/backend backend="${API_IMAGE}:${IMAGE_TAG}"
                     kubectl -n task-manager set image deployment/frontend frontend="${UI_IMAGE}:${IMAGE_TAG}"
@@ -219,6 +220,7 @@ REMOTE_DEPLOY
 
                     curl -fsSI http://localhost:8083
                     curl -fsS http://localhost:8083/api/ready
+                    curl -fsS http://$(kubectl -n task-manager get svc backend -o jsonpath='{.spec.clusterIP}'):3001/metrics | grep 'taskroom_up 1'
 REMOTE_SMOKE
                 '''
             }

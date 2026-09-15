@@ -52,3 +52,20 @@ test('readiness reports database outage without exposing internals', async () =>
     assert.deepEqual(await response.json(), { error: 'Database unavailable' });
   } finally { await new Promise(resolve => server.close(resolve)); }
 });
+test('metrics endpoint exposes Prometheus text and request counters', async () => {
+  const pool = { query: async () => ({ rows: [] }) };
+  const server = createApp(pool).listen(0, '127.0.0.1');
+  await new Promise(resolve => server.once('listening', resolve));
+  const url = 'http://127.0.0.1:' + server.address().port;
+  try {
+    assert.equal((await fetch(url + '/api/health')).status, 200);
+    const response = await fetch(url + '/metrics');
+    assert.equal(response.status, 200);
+    assert.match(response.headers.get('content-type'), /text\/plain/);
+    const body = await response.text();
+    assert.match(body, /# HELP taskroom_up/);
+    assert.match(body, /taskroom_up 1/);
+    assert.match(body, /taskroom_http_requests_total\{method="GET",route="\/api\/health",status="200"\} 1/);
+    assert.match(body, /taskroom_http_request_duration_seconds_count\{method="GET",route="\/api\/health",status="200"\} 1/);
+  } finally { await new Promise(resolve => server.close(resolve)); }
+});

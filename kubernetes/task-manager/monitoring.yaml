@@ -1,0 +1,21 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: taskroom-backend
+  namespace: monitoring
+  labels:
+    release: monitoring
+    app: task-manager
+spec:
+  namespaceSelector:
+    matchNames:
+      - task-manager
+  selector:
+    matchLabels:
+      app: task-manager
+      component: backend
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 15s
+      scrapeTimeout: 5s
