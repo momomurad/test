@@ -1,0 +1,41 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: taskroom-alerts
+  namespace: monitoring
+  labels:
+    release: monitoring
+    app: task-manager
+spec:
+  groups:
+    - name: taskroom.rules
+      rules:
+        - alert: TaskroomBackendUnavailable
+          expr: kube_deployment_status_replicas_available{namespace="task-manager", deployment="backend"} < 1
+          for: 1m
+          labels:
+            severity: critical
+            app: taskroom
+          annotations:
+            summary: Taskroom backend has no available replicas
+            description: The Taskroom backend deployment has had fewer than one available replica for more than one minute.
+
+        - alert: TaskroomMetricsMissing
+          expr: absent(taskroom_up)
+          for: 5m
+          labels:
+            severity: warning
+            app: taskroom
+          annotations:
+            summary: Taskroom metrics are missing
+            description: Prometheus has not received the taskroom_up metric for five minutes. Check the backend pod, ServiceMonitor, and backend service labels.
+
+        - alert: TaskroomHighErrorRate
+          expr: sum(rate(taskroom_http_requests_total{status=~"5.."}[5m])) > 0
+          for: 2m
+          labels:
+            severity: warning
+            app: taskroom
+          annotations:
+            summary: Taskroom is returning server errors
+            description: Taskroom has returned HTTP 5xx responses for more than two minutes.

@@ -178,6 +178,7 @@ pipeline {
                     kubectl apply -f /tmp/task-manager-k8s/frontend.yaml
                     kubectl apply -f /tmp/task-manager-k8s/monitoring.yaml
                     kubectl apply -f /tmp/task-manager-k8s/grafana-dashboard.yaml
+                    kubectl apply -f /tmp/task-manager-k8s/alerts.yaml
 
                     kubectl -n task-manager set image deployment/backend backend="${API_IMAGE}:${IMAGE_TAG}"
                     kubectl -n task-manager set image deployment/frontend frontend="${UI_IMAGE}:${IMAGE_TAG}"
@@ -252,6 +253,7 @@ REMOTE_DEPLOY
 
                     kubectl -n monitoring get servicemonitor taskroom-backend
                     kubectl -n monitoring get configmap taskroom-grafana-dashboard
+                    kubectl -n monitoring get prometheusrule taskroom-alerts
 REMOTE_SMOKE
                 '''
             }

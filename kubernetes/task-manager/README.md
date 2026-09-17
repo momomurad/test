@@ -24,6 +24,7 @@ kubectl apply -f kubernetes/task-manager/backend.yaml
 kubectl apply -f kubernetes/task-manager/frontend.yaml
 kubectl apply -f kubernetes/task-manager/monitoring.yaml
 kubectl apply -f kubernetes/task-manager/grafana-dashboard.yaml
+kubectl apply -f kubernetes/task-manager/alerts.yaml
 kubectl -n task-manager rollout status deployment/database --timeout=120s
 kubectl -n task-manager rollout status deployment/backend --timeout=120s
 kubectl -n task-manager rollout status deployment/frontend --timeout=120s
@@ -53,8 +54,10 @@ The backend exposes Prometheus-format metrics at `/metrics`. When the
 ```bash
 kubectl apply -f kubernetes/task-manager/monitoring.yaml
 kubectl apply -f kubernetes/task-manager/grafana-dashboard.yaml
+kubectl apply -f kubernetes/task-manager/alerts.yaml
 kubectl get servicemonitor -n monitoring taskroom-backend
 kubectl get configmap -n monitoring taskroom-grafana-dashboard
+kubectl get prometheusrule -n monitoring taskroom-alerts
 ```
 
 Quick checks from the K8s VM:
@@ -71,4 +74,25 @@ taskroom_up
 taskroom_http_requests_total
 rate(taskroom_http_requests_total[5m])
 taskroom_http_request_duration_seconds_count
+```
+
+## Alert test
+
+`alerts.yaml` defines Taskroom Prometheus alerts. To test the backend availability
+alert manually, scale the backend to zero and watch Prometheus **Alerts**:
+
+```bash
+kubectl -n task-manager scale deployment/backend --replicas=0
+kubectl -n task-manager get deployment backend
+```
+
+The alert `TaskroomBackendUnavailable` uses kube-state-metrics instead of
+`taskroom_up == 0`, because when replicas are scaled to zero the scraped
+`taskroom_up` series can disappear and return no data.
+
+Restore the backend after the test:
+
+```bash
+kubectl -n task-manager scale deployment/backend --replicas=1
+kubectl -n task-manager rollout status deployment/backend --timeout=120s
 ```

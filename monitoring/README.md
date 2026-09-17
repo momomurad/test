@@ -107,3 +107,28 @@ vagrant ssh k8s -c "kubectl -n monitoring get configmap taskroom-grafana-dashboa
 Open Grafana at http://localhost:3000, then go to **Dashboards** and open
 **Taskroom Overview**. The dashboard shows backend status, request rate by HTTP
 status, p95 request duration, and backend memory RSS.
+
+## Taskroom alerts
+
+Taskroom alert rules are stored in `kubernetes/task-manager/alerts.yaml` and are
+loaded into Prometheus as the `taskroom-alerts` PrometheusRule.
+
+The scale-to-zero test uses this alert:
+
+```promql
+kube_deployment_status_replicas_available{namespace="task-manager", deployment="backend"} < 1
+```
+
+This works better than `taskroom_up == 0` for a replica count of zero, because
+there may be no backend scrape target and therefore no `taskroom_up` sample.
+
+Apply and verify manually:
+
+```powershell
+vagrant ssh k8s -c "kubectl apply -f /vagrant/kubernetes/task-manager/alerts.yaml"
+vagrant ssh k8s -c "kubectl -n monitoring get prometheusrule taskroom-alerts"
+```
+
+Then open Prometheus at http://localhost:9090/alerts and look for
+`TaskroomBackendUnavailable`, `TaskroomMetricsMissing`, and
+`TaskroomHighErrorRate`.
