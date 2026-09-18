@@ -9,6 +9,19 @@ pipeline {
         disableConcurrentBuilds()
     }
 
+    parameters {
+        choice(
+            name: 'ACTION',
+            choices: ['DEPLOY', 'ROLLBACK'],
+            description: 'DEPLOY builds and publishes the current commit. ROLLBACK deploys an existing image tag.'
+        )
+        string(
+            name: 'ROLLBACK_TAG',
+            defaultValue: '',
+            description: 'Existing shared API/UI image tag to deploy when ACTION=ROLLBACK, for example 26-1716544.'
+        )
+    }
+
     triggers {
         pollSCM('H/2 * * * *')
     }
@@ -20,6 +33,9 @@ pipeline {
 
     stages {
         stage('Check tools') {
+            when {
+                expression { params.ACTION == 'DEPLOY' }
+            }
             steps {
                 sh 'node --version'
                 sh 'npm --version'
@@ -28,6 +44,9 @@ pipeline {
         }
 
         stage('Install dependencies') {
+            when {
+                expression { params.ACTION == 'DEPLOY' }
+            }
             steps {
                 dir('apps/task-manager') {
                     sh 'npm ci'
@@ -36,6 +55,9 @@ pipeline {
         }
 
         stage('Backend tests') {
+            when {
+                expression { params.ACTION == 'DEPLOY' }
+            }
             options {
                 timeout(time: 5, unit: 'MINUTES')
             }
@@ -91,6 +113,9 @@ pipeline {
         }
 
         stage('Build frontend') {
+            when {
+                expression { params.ACTION == 'DEPLOY' }
+            }
             steps {
                 dir('apps/task-manager') {
                     sh 'npm run build'
@@ -98,7 +123,48 @@ pipeline {
             }
         }
 
+        stage('SonarQube analysis') {
+            when {
+                expression { params.ACTION == 'DEPLOY' }
+            }
+            options {
+                timeout(time: 15, unit: 'MINUTES')
+            }
+            steps {
+                dir('apps/task-manager') {
+                    script {
+                        def scannerHome = tool 'SonarScanner'
+                        withSonarQubeEnv('sonarqube-taskroom', credentialsId: 'SonarQube') {
+                            withEnv(["SCANNER_HOME=${scannerHome}"]) {
+                                sh '''
+                                    set +x
+                                    set -eu
+                                    export SONAR_TOKEN="$SONAR_AUTH_TOKEN"
+                                    "$SCANNER_HOME/bin/sonar-scanner"
+                                '''
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Quality gate') {
+            when {
+                expression { params.ACTION == 'DEPLOY' }
+            }
+            options {
+                timeout(time: 10, unit: 'MINUTES')
+            }
+            steps {
+                waitForQualityGate abortPipeline: true
+            }
+        }
+
         stage('Build Docker images') {
+            when {
+                expression { params.ACTION == 'DEPLOY' }
+            }
             steps {
                 script {
                     env.IMAGE_TAG = "${env.BUILD_NUMBER}-${env.GIT_COMMIT.take(7)}"
@@ -120,6 +186,9 @@ pipeline {
         }
 
         stage('Push Docker images') {
+            when {
+                expression { params.ACTION == 'DEPLOY' }
+            }
             steps {
                 withCredentials([usernamePassword(
                     credentialsId: 'docker-creds',
@@ -140,6 +209,9 @@ pipeline {
             }
         }
         stage('Deploy to Minikube') {
+            when {
+                expression { params.ACTION == 'DEPLOY' }
+            }
             steps {
                 sh '''
                     set -eu
@@ -187,6 +259,67 @@ pipeline {
                     kubectl -n task-manager rollout status deployment/backend --timeout=120s
                     kubectl -n task-manager rollout status deployment/frontend --timeout=120s
 REMOTE_DEPLOY
+                '''
+            }
+        }
+        stage('Rollback in Minikube') {
+            when {
+                expression { params.ACTION == 'ROLLBACK' }
+            }
+            options {
+                timeout(time: 5, unit: 'MINUTES')
+            }
+            steps {
+                sh '''
+                    set -eu
+
+                    case "${ROLLBACK_TAG}" in
+                        ''|[.-]*|*[!A-Za-z0-9_.-]*)
+                            echo 'ROLLBACK_TAG must be a valid existing Docker tag, for example 26-1716544.'
+                            exit 1
+                            ;;
+                    esac
+
+                    if [ "${#ROLLBACK_TAG}" -gt 128 ]; then
+                        echo 'ROLLBACK_TAG must be 128 characters or fewer.'
+                        exit 1
+                    fi
+
+                    echo "Checking rollback images for tag ${ROLLBACK_TAG}."
+                    docker manifest inspect "${API_IMAGE}:${ROLLBACK_TAG}" >/dev/null
+                    docker manifest inspect "${UI_IMAGE}:${ROLLBACK_TAG}" >/dev/null
+
+                    remote_host="vagrant@192.168.56.30"
+                    ssh_key="/var/lib/jenkins/.ssh/k8s_deploy_key"
+                    ssh_opts="-i ${ssh_key} -o StrictHostKeyChecking=accept-new -o IdentitiesOnly=yes"
+
+                    if [ ! -r "${ssh_key}" ]; then
+                        echo "Missing SSH key: ${ssh_key}"
+                        exit 1
+                    fi
+
+                    ssh ${ssh_opts} "${remote_host}" \
+                        API_IMAGE="${API_IMAGE}" UI_IMAGE="${UI_IMAGE}" ROLLBACK_TAG="${ROLLBACK_TAG}" \
+                        bash -s <<'REMOTE_ROLLBACK'
+                    set -eu
+
+                    echo "Rolling Taskroom back to image tag ${ROLLBACK_TAG}."
+                    echo 'Images before rollback:'
+                    kubectl -n task-manager get deployment backend frontend \
+                        -o custom-columns='DEPLOYMENT:.metadata.name,IMAGE:.spec.template.spec.containers[0].image'
+
+                    kubectl -n task-manager set image deployment/backend \
+                        backend="${API_IMAGE}:${ROLLBACK_TAG}"
+                    kubectl -n task-manager set image deployment/frontend \
+                        frontend="${UI_IMAGE}:${ROLLBACK_TAG}"
+
+                    kubectl -n task-manager rollout status deployment/backend --timeout=120s
+                    kubectl -n task-manager rollout status deployment/frontend --timeout=120s
+
+                    echo 'Images after rollback:'
+                    kubectl -n task-manager get deployment backend frontend \
+                        -o custom-columns='DEPLOYMENT:.metadata.name,IMAGE:.spec.template.spec.containers[0].image'
+REMOTE_ROLLBACK
                 '''
             }
         }

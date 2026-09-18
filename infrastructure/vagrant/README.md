@@ -10,7 +10,8 @@ commands work without an extra `--chdir` option.
 |---|---|---|---|
 | `jenkins` | `192.168.56.10` | 2 CPU, 2 GB RAM | CI/CD server |
 | `ansible` | `192.168.56.20` | 2 CPU, 2 GB RAM | Configuration control node |
-| `k8s` | `192.168.56.30` | 3 CPU, 6 GB RAM | Docker and Minikube host |
+| `k8s` | `192.168.56.30` | 4 CPU, 8 GB RAM | Docker and Minikube host |
+| `sonarqube` | `192.168.56.40` | 2 CPU, 4 GB RAM | Code-quality server and PostgreSQL |
 
 The base image is `bento/ubuntu-22.04`. The K8s VM enables nested hardware
 virtualization and starts Minikube with the Docker driver.
@@ -22,8 +23,8 @@ Run these from `D:\devops-k8s-project`:
 ```powershell
 vagrant validate
 vagrant status
-vagrant up <jenkins|ansible|k8s>
-vagrant provision <jenkins|ansible|k8s>
+vagrant up <jenkins|ansible|k8s|sonarqube>
+vagrant provision <jenkins|ansible|k8s|sonarqube>
 vagrant reload k8s
 vagrant ssh <jenkins|ansible|k8s>
 vagrant port k8s
@@ -41,6 +42,7 @@ Use `vagrant reload k8s` after changing its CPU or memory settings. Use
 | 3000 | Grafana |
 | 9090 | Prometheus |
 | 31200 | WordPress |
+| 9000 | SonarQube |
 
 Vagrant forwards these Windows host ports to listeners in the VMs. Kubernetes
 services that use `ClusterIP` also require the corresponding persistent

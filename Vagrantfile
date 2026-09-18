@@ -156,4 +156,22 @@ UNIT
     SHELL
   end
 
+  # =========================================================================
+  # 4. SONARQUBE SERVER VM
+  # =========================================================================
+  config.vm.define "sonarqube" do |sonarqube|
+    sonarqube.vm.hostname = "sonarqube-node"
+    sonarqube.vm.network "private_network", ip: "192.168.56.40"
+    sonarqube.vm.network "forwarded_port", guest: 9000, host: 9000,
+      host_ip: "127.0.0.1", auto_correct: true
+
+    sonarqube.vm.provider "virtualbox" do |v|
+      v.name = "DevOps-SonarQube"
+      v.cpus = 2
+      v.memory = 4096
+    end
+
+    sonarqube.vm.provision "shell", path: "provision/sonarqube.sh"
+  end
+
 end

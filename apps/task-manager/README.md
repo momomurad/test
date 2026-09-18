@@ -37,6 +37,31 @@ the database connection. The backend also exposes Prometheus-format metrics at
 `/metrics`, including process health, memory, request totals, and request
 duration buckets.
 
+## SonarQube analysis
+
+The repository-side analysis scope is defined in `sonar-project.properties`.
+It analyzes `backend/src` and `frontend/src`, classifies `backend/test` as test
+code, and excludes generated dependencies, builds, and coverage output.
+
+The SonarQube server is available to Windows at `http://localhost:9000` and to
+Jenkins at `http://192.168.56.40:9000`. Store the analysis token only in
+Jenkins Secret Text credentials as `SonarQube`; never add it to this
+file, the Jenkinsfile, or Git.
+
+Analysis uses the existing project key `devops-k8s-project`, matching the
+existing project-scoped token. Jenkins uses server configuration
+`sonarqube-taskroom` and tool `SonarScanner`. DEPLOY runs analysis after tests
+and the frontend build, then waits up to 10 minutes for the quality gate.
+A failed gate or timeout stops the pipeline before Docker images are built,
+pushed, or deployed. ROLLBACK skips analysis to allow recovery.
+
+The project webhook sends results to
+`http://192.168.56.10:8080/sonarqube-webhook/`. After committing and pushing,
+check the **SonarQube analysis** and **Quality gate** stages in Jenkins and
+the `devops-k8s-project` dashboard in SonarQube. No coverage report is generated
+by this integration yet; successful tests alone do not provide SonarQube
+coverage data. Address reported gate failures before expecting deployment.
+
 ## Persistence and stopping
 
 PostgreSQL data is kept in named volume `lab-task-manager_task-data`.
