@@ -134,7 +134,7 @@ pipeline {
                 dir('apps/task-manager') {
                     script {
                         def scannerHome = tool 'SonarScanner'
-                        withSonarQubeEnv('sonarqube-taskroom', credentialsId: 'SonarQube') {
+                        withSonarQubeEnv(installationName: 'sonarqube-taskroom', credentialsId: 'SonarQube') {
                             withEnv(["SCANNER_HOME=${scannerHome}"]) {
                                 sh '''
                                     set +x
