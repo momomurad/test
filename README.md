@@ -1,7 +1,7 @@
 # DevOps Multi-VM Lab
 
 A local DevOps learning environment built with Vagrant, VirtualBox, Minikube,
-Jenkins, Ansible, WordPress, Prometheus, Grafana, and a small Node.js demo app.
+Jenkins, Ansible, SonarQube, WordPress, Prometheus, Grafana, and Node.js apps.
 The lab is designed to practise the full path from source code to a monitored
 Kubernetes deployment before moving the same ideas to cloud infrastructure.
 
@@ -13,6 +13,7 @@ Windows host
   +-- Jenkins VM  192.168.56.10
   +-- Ansible VM  192.168.56.20
   +-- K8s VM      192.168.56.30
+  +-- SonarQube VM 192.168.56.40
         |
         +-- Minikube
               +-- sample-node-app
@@ -24,15 +25,20 @@ Windows host
 
 ```text
 apps/sample-node-app/             Node.js demo application and Dockerfile
+apps/task-manager/                React/Express/PostgreSQL Taskroom app
 infrastructure/vagrant/           Vagrant-specific documentation
 kubernetes/sample-node-app/       Kubernetes manifests for the demo app
+kubernetes/task-manager/          Kubernetes manifests for Taskroom
 monitoring/                       Monitoring documentation and future config
 provision/k8s-apps.sh             WordPress and monitoring provisioning
+provision/sonarqube.sh            SonarQube VM provisioning
 scripts/start-vms.ps1             Starts and checks the local lab
 scripts/sync-wordpress-from-xampp.ps1
                                   Imports WordPress files from XAMPP
 docs/DevOps_Multi_VM_Lab_Guide.md Detailed operating and troubleshooting guide
-Vagrantfile                       Canonical three-VM definition
+docs/Taskroom_Rebuild_From_Scratch_Guide.md
+                                  Ordered rebuild guide before cloud work
+Vagrantfile                       Canonical VM definition
 ```
 
 ## Start the lab
@@ -72,6 +78,7 @@ vagrant provision k8s
 | Grafana | http://localhost:3000 |
 | Prometheus | http://localhost:9090 |
 | WordPress | http://localhost:31200 |
+| SonarQube | http://localhost:9000 |
 
 ## Verify the lab
 
@@ -91,4 +98,7 @@ workloads and persistent data are intentionally being removed. Normal
 `vagrant halt` and `vagrant up` preserve the VM disks.
 
 See [the detailed lab guide](docs/DevOps_Multi_VM_Lab_Guide.md) for operations
-and troubleshooting.
+and troubleshooting. Use
+[the Taskroom rebuild guide](docs/Taskroom_Rebuild_From_Scratch_Guide.md)
+when recreating the full project in a new folder and repository before cloud
+work.
